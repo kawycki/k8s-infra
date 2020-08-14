@@ -16,7 +16,7 @@ type ReferenceGraph struct {
 func CollectResourceDefinitions(definitions Types) TypeNameSet {
 	resources := make(TypeNameSet)
 	for _, def := range definitions {
-		if _, ok := def.Type().(*ResourceType); ok {
+		if _, ok := def.Type().(*ResourceListType); ok {
 			resources.Add(def.Name())
 		}
 	}
