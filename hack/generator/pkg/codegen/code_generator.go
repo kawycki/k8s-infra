@@ -50,8 +50,9 @@ func corePipelineStages(idFactory astmodel.IdentifierFactory, configuration *con
 		augmentResourcesWithStatus(idFactory, configuration),
 		applyExportFilters(configuration), // should come after status types are loaded
 		stripUnreferencedTypeDefinitions(),
+		convertAllOfAndOneOfToObjects(idFactory),
 		nameTypesForCRD(idFactory),
-		applyPropertyRewrites(configuration), // must come after nameTypesForCRD so that objects are all expanded
+		applyPropertyRewrites(configuration), // must come after nameTypesForCRD and convertAllOfAndOneOf so that objects are all expanded
 		determineResourceOwnership(),
 		removeTypeAliases(),
 		improveResourcePluralization(),
@@ -71,10 +72,13 @@ func (generator *CodeGenerator) Generate(ctx context.Context) error {
 
 	for i, stage := range generator.pipeline {
 		klog.V(0).Infof("Pipeline stage %d/%d: %s", i+1, len(generator.pipeline), stage.description)
+		defsIn := len(defs)
 		defs, err = stage.Action(ctx, defs)
 		if err != nil {
 			return errors.Wrapf(err, "Failed during pipeline stage %d/%d: %s", i+1, len(generator.pipeline), stage.description)
 		}
+		defsOut := len(defs)
+		klog.V(2).Infof("Types in: %d out: %d", defsIn, defsOut)
 	}
 
 	return nil

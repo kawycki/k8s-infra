@@ -51,6 +51,8 @@ type TypeVisitor struct {
 	VisitArrayType    func(this *TypeVisitor, it *ArrayType, ctx interface{}) Type
 	VisitPrimitive    func(this *TypeVisitor, it *PrimitiveType, ctx interface{}) Type
 	VisitObjectType   func(this *TypeVisitor, it *ObjectType, ctx interface{}) Type
+	VisitOneOfType    func(this *TypeVisitor, it OneOfType, ctx interface{}) Type
+	VisitAllOfType    func(this *TypeVisitor, it AllOfType, ctx interface{}) Type
 	VisitMapType      func(this *TypeVisitor, it *MapType, ctx interface{}) Type
 	VisitOptionalType func(this *TypeVisitor, it *OptionalType, ctx interface{}) Type
 	VisitEnumType     func(this *TypeVisitor, it *EnumType, ctx interface{}) Type
@@ -74,6 +76,10 @@ func (tv *TypeVisitor) Visit(t Type, ctx interface{}) Type {
 		return tv.VisitObjectType(tv, it, ctx)
 	case *MapType:
 		return tv.VisitMapType(tv, it, ctx)
+	case OneOfType:
+		return tv.VisitOneOfType(tv, it, ctx)
+	case AllOfType:
+		return tv.VisitAllOfType(tv, it, ctx)
 	case *OptionalType:
 		return tv.VisitOptionalType(tv, it, ctx)
 	case *EnumType:
@@ -91,6 +97,16 @@ func (tv *TypeVisitor) VisitDefinition(td TypeDefinition, ctx interface{}) TypeD
 	return MakeTypeDefinition(
 		tv.VisitTypeName(tv, td.Name(), ctx).(TypeName),
 		tv.Visit(td.Type(), ctx))
+}
+
+// VisitAll visits each type in the slice and returns an output for each input
+func (tv *TypeVisitor) VisitAll(types []Type, ctx interface{}) []Type {
+	result := make([]Type, len(types))
+	for _, t := range types {
+		result = append(result, tv.Visit(t, ctx))
+	}
+
+	return result
 }
 
 // MakeTypeVisitor returns a default (identity transform) visitor, which
@@ -118,6 +134,22 @@ func MakeTypeVisitor() TypeVisitor {
 				newProps = append(newProps, prop.WithType(this.Visit(prop.propertyType, ctx)))
 			}
 			return it.WithProperties(newProps...)
+		},
+		VisitOneOfType: func(this *TypeVisitor, it OneOfType, ctx interface{}) Type {
+			var newTypes []Type
+			for _, oneOf := range it.Types() {
+				newTypes = append(newTypes, this.Visit(oneOf, ctx))
+			}
+
+			return MakeOneOfType(newTypes)
+		},
+		VisitAllOfType: func(this *TypeVisitor, it AllOfType, ctx interface{}) Type {
+			var newTypes []Type
+			for _, allOf := range it.Types() {
+				newTypes = append(newTypes, this.Visit(allOf, ctx))
+			}
+
+			return MakeAllOfType(newTypes)
 		},
 		VisitMapType: func(this *TypeVisitor, it *MapType, ctx interface{}) Type {
 			newKey := this.Visit(it.key, ctx)

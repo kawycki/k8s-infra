@@ -8,6 +8,7 @@ package codegen
 import (
 	"context"
 	"fmt"
+
 	"github.com/Azure/k8s-infra/hack/generator/pkg/astmodel"
 	"github.com/Azure/k8s-infra/hack/generator/pkg/astmodel/armconversion"
 	"github.com/pkg/errors"
