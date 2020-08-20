@@ -18,13 +18,13 @@ func NewKubernetesResourceInterfaceImpl(
 	spec *ObjectType) *InterfaceImplementation {
 
 	funcs := map[string]Function{
-		"Owner": &kubernetesResourceFunction{
-			spec:      spec,
+		"Owner": &objectFunction{
+			o:         spec,
 			idFactory: idFactory,
 			asFunc:    ownerFunction,
 		},
-		"AzureName": &kubernetesResourceFunction{
-			spec:      spec,
+		"AzureName": &objectFunction{
+			o:         spec,
 			idFactory: idFactory,
 			asFunc:    azureNameFunction,
 		},
@@ -37,45 +37,47 @@ func NewKubernetesResourceInterfaceImpl(
 	return result
 }
 
-type kubernetesResourceFunction struct {
-	spec      *ObjectType
+// objectFunction is a simple helper that implements the Function interface. It is intended for use for functions
+// that only need information about the object they are operating on
+type objectFunction struct {
+	o         *ObjectType
 	idFactory IdentifierFactory
 
-	asFunc func(f *kubernetesResourceFunction, codeGenerationContext *CodeGenerationContext, receiver TypeName, methodName string) *ast.FuncDecl
+	asFunc func(f *objectFunction, codeGenerationContext *CodeGenerationContext, receiver TypeName, methodName string) *ast.FuncDecl
 }
 
-var _ Function = &kubernetesResourceFunction{}
+var _ Function = &objectFunction{}
 
-func (k *kubernetesResourceFunction) RequiredImports() []PackageReference {
+func (k *objectFunction) RequiredImports() []PackageReference {
 	// We only require GenRuntime
 	return []PackageReference{
 		MakeGenRuntimePackageReference(),
 	}
 }
 
-func (k *kubernetesResourceFunction) References() TypeNameSet {
-	return k.spec.References()
+func (k *objectFunction) References() TypeNameSet {
+	return k.o.References()
 }
 
-func (k *kubernetesResourceFunction) AsFunc(codeGenerationContext *CodeGenerationContext, receiver TypeName, methodName string) *ast.FuncDecl {
+func (k *objectFunction) AsFunc(codeGenerationContext *CodeGenerationContext, receiver TypeName, methodName string) *ast.FuncDecl {
 	return k.asFunc(k, codeGenerationContext, receiver, methodName)
 }
 
-func (k *kubernetesResourceFunction) Equals(f Function) bool {
-	typedF, ok := f.(*kubernetesResourceFunction)
+func (k *objectFunction) Equals(f Function) bool {
+	typedF, ok := f.(*objectFunction)
 	if !ok {
 		return false
 	}
 
-	return k.spec.Equals(typedF.spec)
+	return k.o.Equals(typedF.o)
 }
 
-func ownerFunction(k *kubernetesResourceFunction, codeGenerationContext *CodeGenerationContext, receiver TypeName, methodName string) *ast.FuncDecl {
+func ownerFunction(k *objectFunction, codeGenerationContext *CodeGenerationContext, receiver TypeName, methodName string) *ast.FuncDecl {
 	receiverIdent := ast.NewIdent(k.idFactory.CreateIdentifier(receiver.Name(), NotExported))
 	receiverType := receiver.AsType(codeGenerationContext)
 
 	// We need to ensure spec has an owner, then we want to return that
-	_, ok := k.spec.Property("Owner")
+	_, ok := k.o.Property("Owner")
 	if !ok {
 		panic(fmt.Sprintf("Resource spec %q doesn't have owner property", receiver))
 	}
@@ -176,7 +178,7 @@ func createResourceReference(
 		})
 }
 
-func azureNameFunction(k *kubernetesResourceFunction, codeGenerationContext *CodeGenerationContext, receiver TypeName, methodName string) *ast.FuncDecl {
+func azureNameFunction(k *objectFunction, codeGenerationContext *CodeGenerationContext, receiver TypeName, methodName string) *ast.FuncDecl {
 	receiverIdent := ast.NewIdent(k.idFactory.CreateIdentifier(receiver.Name(), NotExported))
 	receiverType := receiver.AsType(codeGenerationContext)
 
