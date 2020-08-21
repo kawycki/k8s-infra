@@ -5,6 +5,7 @@ package v20200101
 
 import "encoding/json"
 
+//Generated from: https://test.test/schemas/2020-01-01/test.json
 type Test struct {
 
 	//Bool1: mutually exclusive with all other properties
@@ -31,6 +32,7 @@ func (test Test) MarshalJSON() ([]byte, error) {
 	return nil, nil
 }
 
+//Generated from: https://test.test/schemas/2020-01-01/test.json#/definitions/Foo
 type Foo struct {
 	Name *string `json:"name,omitempty"`
 }

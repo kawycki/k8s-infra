@@ -94,9 +94,8 @@ func (tv *TypeVisitor) Visit(t Type, ctx interface{}) Type {
 // VisitDefinition invokes the TypeVisitor on both the name and type of the definition
 // NB: this is only valid if VisitTypeName returns a TypeName and not generally a Type
 func (tv *TypeVisitor) VisitDefinition(td TypeDefinition, ctx interface{}) TypeDefinition {
-	return MakeTypeDefinition(
-		tv.VisitTypeName(tv, td.Name(), ctx).(TypeName),
-		tv.Visit(td.Type(), ctx))
+	// we use the WithX methods here to preserve description etc
+	return td.WithName(tv.VisitTypeName(tv, td.Name(), ctx).(TypeName)).WithType(tv.Visit(td.Type(), ctx))
 }
 
 // VisitAll visits each type in the slice and returns an output for each input
